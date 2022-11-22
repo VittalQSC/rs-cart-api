@@ -1,21 +1,42 @@
 import { NestFactory } from '@nestjs/core';
-
-import * as helmet from 'helmet';
+import { configure as serverlessExpress } from '@vendia/serverless-express';
+import { Callback, Context, Handler } from 'aws-lambda';
+import helmet from 'helmet';
+import cors from 'cors';
 
 import { AppModule } from './app.module';
 
-const port = process.env.PORT || 4000;
+let server: Handler;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  await app.init();
 
   app.enableCors({
     origin: (req, callback) => callback(null, true),
   });
   app.use(helmet());
 
-  await app.listen(port);
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.use(cors());
+  return serverlessExpress({ app: expressApp });
 }
-bootstrap().then(() => {
-  console.log('App is running on %s port', port);
-});
+
+export const handler: Handler = async (
+  event: any,
+  context: Context,
+  callback: Callback,
+) => {
+  server = server ?? (await bootstrap());
+  const res = await server(event, context, callback);
+
+  return {
+    ...res,
+    headers: {
+      ...(res.headers || {}),
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': true,
+    },
+  };
+};
