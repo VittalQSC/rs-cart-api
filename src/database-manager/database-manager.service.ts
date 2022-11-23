@@ -4,20 +4,17 @@ import { DB_OPTIONS } from 'src/constants';
 
 @Injectable()
 export class DatabaseManagerService {
-  private client: Client|null = null;
-
   // TODO should not call end on each action
   async query(queryString: string) {
-    this.client = this.client ?? new Client(DB_OPTIONS);
-    this.client.connect();
+    const client = new Client(DB_OPTIONS);
+    client.connect();
     try {
-      const result = await this.client.query(queryString);
-      this.client.end();
-      this.client = null;
+      const result = await client.query(queryString);
+      client.end();
       return result;
     } catch (error) {
-      this.client.end();
-      this.client = null;
+      console.log('error', error);
+      client.end();
     }
   }
 }

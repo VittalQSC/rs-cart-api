@@ -5,13 +5,13 @@ import {
   Put,
   Body,
   Req,
-  Post,
   UseGuards,
+  Post,
   HttpStatus,
 } from '@nestjs/common';
+import { OrderService } from 'src/order/services/order.service';
 
 import { BasicAuthGuard, JwtAuthGuard } from '../auth';
-import { OrderService } from '../order';
 import { AppRequest, getUserIdFromRequest } from '../shared';
 
 import { calculateCartTotal } from './models-rules';
@@ -19,10 +19,7 @@ import { CartService } from './services';
 
 @Controller('api/profile/cart')
 export class CartController {
-  constructor(
-    private cartService: CartService,
-    private orderService: OrderService,
-  ) {}
+  constructor(private cartService: CartService) {}
 
   // @UseGuards(JwtAuthGuard)
   @UseGuards(BasicAuthGuard)
@@ -58,39 +55,7 @@ export class CartController {
     await this.cartService.removeByUserId(getUserIdFromRequest(req));
 
     return {
-      statusCode: HttpStatus.OK,
       message: 'OK',
     };
-  }
-
-  // @UseGuards(JwtAuthGuard)
-  @UseGuards(BasicAuthGuard)
-  @Post('checkout')
-  async checkout(@Req() req: AppRequest, @Body() body) {
-    const userId = getUserIdFromRequest(req);
-    const cart = await this.cartService.findByUserId(userId);
-
-    if (!(cart && cart.items.length)) {
-      const statusCode = HttpStatus.BAD_REQUEST;
-      req.statusCode = statusCode;
-
-      return {
-        statusCode,
-        message: 'Cart is empty',
-      };
-    }
-
-    const { id: cartId, items } = cart;
-    const total = calculateCartTotal(cart);
-    const order = this.orderService.create({
-      ...body, // TODO: validate and pick only necessary data
-      userId,
-      cartId,
-      items,
-      total,
-    });
-    await this.cartService.removeByUserId(userId);
-
-    return { order };
   }
 }

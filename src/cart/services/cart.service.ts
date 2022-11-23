@@ -7,18 +7,14 @@ import { Cart } from '../models';
 
 @Injectable()
 export class CartService {
-  private userCarts: Record<string, Cart> = {};
-
   constructor(private databaseManagerService: DatabaseManagerService) {}
 
   async findByUserId(userId: string): Promise<Cart> {
     const result = await this.databaseManagerService.query(`
-      select * from carts c
-      left join cart_items on c.id = cart_id 
-      inner join users u on c.user_id = u.id where u.id = '${userId}';
+      select * from carts c 
+      left join cart_items ci on c.id = ci.cart_id 
+      where c.user_id = '${userId}';
     `);
-
-    console.log(result);
 
     // TODO handle invalid responses
     if (!result || !result.rows) {
@@ -26,18 +22,23 @@ export class CartService {
     }
 
     const row = result.rows[0];
-    if (!row || !row.cart_id) {
+    if (!row) {
       return null;
     }
 
+    const items = [];
+    result.rows.forEach(row => {
+      if (row.product_id && !items.find(i => i.product_id === row.product_id)) {
+        items.push({
+          product_id: row.product_id,
+          count: row.count,
+        });
+      }
+    });
+
     const cart = {
-      id: row.cart_id,
-      items: result.rows
-        .filter(r => !!r.product_id)
-        .map(r => ({
-          product_id: r.product_id,
-          count: r.count,
-        })),
+      id: row.id,
+      items,
     };
 
     return cart;
@@ -47,11 +48,20 @@ export class CartService {
     const id = v4(v4());
 
     // TODO better to make single request for insert + select
-    await this.databaseManagerService.query(`
+    const result = await this.databaseManagerService.query(`
     insert into carts(id, user_id) values('${id}', '${userId}');
+    select id from carts c 
+    where c.user_id = '${userId}';
     `);
 
-    return this.findByUserId(userId);
+    if (!result || !result[1] || !result[1].rows) {
+      return { id: null, items: [] };
+    }
+
+    return {
+      id: result[1].rows[0].id,
+      items: [],
+    };
   }
 
   async findOrCreateByUserId(userId: string): Promise<Cart> {
@@ -82,7 +92,7 @@ export class CartService {
     `,
     );
 
-    return this.findOrCreateByUserId(userId);
+    return this.findByUserId(userId);
   }
 
   async removeByUserId(userId) {
