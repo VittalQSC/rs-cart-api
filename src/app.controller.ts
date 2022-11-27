@@ -8,6 +8,7 @@ export class AppController {
 
   @Get([ '', 'ping' ])
   healthCheck(): any {
+    console.log('ping!');
     return {
       statusCode: HttpStatus.OK,
       message: 'OK',

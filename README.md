@@ -1,3 +1,11 @@
+# Info for reviewers
+
+- endpoints:
+  ANY - https://so2zju5nw2.execute-api.eu-west-1.amazonaws.com/dev/
+  ANY - https://so2zju5nw2.execute-api.eu-west-1.amazonaws.com/dev/{proxy+}
+
+- Web App Domain: d1t4j07yv6l8p0.cloudfront.net
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
 </p>
